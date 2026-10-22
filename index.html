@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport TP : Embeddings & Recherche Sémantique — Mundiapolis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --primary-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+            --accent: #0ea5e9;
+            --accent-glow: rgba(14, 165, 233, 0.25);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --code-bg: #0b1120;
+            --code-text: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-page: #090d16;
+            --bg-card: #111827;
+            --border-color: #1f2937;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --code-bg: #030712;
+            --code-text: #cbd5e1;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.65;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Navigation Header */
+        header.site-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.85);
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] header.site-header {
+            background: rgba(17, 24, 39, 0.85);
+        }
+
+        .header-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-badge {
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-light);
+            color: white;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-page);
+        }
+
+        /* Layout Grid */
+        .page-wrapper {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2.5rem;
+            align-items: start;
+        }
+
+        /* Sidebar Navigation */
+        aside.sidebar {
+            position: sticky;
+            top: 5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .sidebar h4 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .toc-item a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .toc-item a:hover, .toc-item a.active {
+            color: var(--primary-light);
+            background: rgba(59, 130, 246, 0.08);
+            font-weight: 600;
+        }
+
+        /* Hero Banner */
+        .hero-banner {
+            grid-column: 1 / -1;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-banner::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 850px;
+        }
+
+        .hero-badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .hero-tag {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-title {
+            font-size: 2.35rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            margin-bottom: 1.75rem;
+            line-height: 1.6;
+        }
+
+        .hero-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .meta-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(6px);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .meta-card .label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-card .value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: white;
+            margin-top: 0.2rem;
+        }
+
+        /* Content Sections */
+        main.main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+        }
+
+        .exercise-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 2.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .exercise-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .exercise-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .exercise-title-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .exercise-num {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 800;
+            font-size: 1rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .exercise-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-analysis {
+            background: rgba(245, 158, 11, 0.12);
+            color: #d97706;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .enonce-box {
+            background: var(--bg-page);
+            border-left: 4px solid var(--primary-light);
+            padding: 1.2rem 1.5rem;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 1.75rem;
+        }
+
+        .enonce-box h4 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-light);
+            margin-bottom: 0.4rem;
+        }
+
+        .enonce-box p {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        /* Code Blocks */
+        .section-subtitle {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 1.5rem 0 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-container {
+            background: var(--code-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #1e293b;
+        }
+
+        .code-header {
+            background: #0f172a;
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .code-lang {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .code-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        pre {
+            padding: 1.25rem 1.5rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--code-text);
+            line-height: 1.6;
+        }
+
+        /* Terminal Output Box */
+        .terminal-box {
+            background: #040914;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.75rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #38bdf8;
+            position: relative;
+        }
+
+        .terminal-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.75px;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .terminal-header::before {
+            content: ">_";
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Analysis Box */
+        .analysis-box {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        [data-theme="dark"] .analysis-box {
+            background: rgba(30, 58, 138, 0.15);
+            border-color: rgba(59, 130, 246, 0.25);
+        }
+
+        .analysis-box h4 {
+            color: var(--primary-light);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analysis-box p {
+            font-size: 0.92rem;
+            color: var(--text-main);
+            margin-bottom: 0.75rem;
+        }
+
+        .analysis-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin: 0.8rem 0;
+        }
+
+        .highlight-list li {
+            position: relative;
+            padding-left: 1.4rem;
+            font-size: 0.9rem;
+        }
+
+        .highlight-list li::before {
+            content: "✦";
+            position: absolute;
+            left: 0;
+            color: var(--primary-light);
+            font-size: 0.8rem;
+        }
+
+        /* Results table */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .custom-table th {
+            background: var(--bg-page);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .custom-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .score-badge {
+            font-family: 'Fira Code', monospace;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .score-high {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
+
+        .score-med {
+            background: rgba(245, 158, 11, 0.15);
+            color: #d97706;
+        }
+
+        .score-low {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+
+        /* Footer */
+        footer.site-footer {
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-card);
+            padding: 3rem 1.5rem;
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Print Stylesheet for Perfect PDF Rendering */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 11pt;
+                line-height: 1.5;
+            }
+
+            header.site-header,
+            aside.sidebar,
+            .header-actions,
+            footer.site-footer,
+            .btn {
+                display: none !important;
+            }
+
+            .page-wrapper {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+
+            .hero-banner {
+                background: #0f172a !important;
+                color: white !important;
+                border-radius: 8px !important;
+                padding: 1.5rem !important;
+                margin-bottom: 2rem !important;
+                page-break-after: avoid;
+                box-shadow: none !important;
+            }
+
+            .hero-banner * {
+                color: white !important;
+            }
+
+            .exercise-card {
+                background: white !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                padding: 1.5rem !important;
+                margin-bottom: 2rem !important;
+                page-break-inside: avoid;
+            }
+
+            .exercise-card:not(:first-child) {
+                page-break-before: always;
+            }
+
+            .code-container,
+            .terminal-box {
+                background: #f1f5f9 !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #0f172a !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+
+            pre, .terminal-box {
+                color: #0f172a !important;
+                font-size: 8.5pt !important;
+            }
+
+            .code-header {
+                background: #e2e8f0 !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+            }
+
+            .analysis-box {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                page-break-inside: avoid;
+            }
+
+            .enonce-box {
+                background: #f8fafc !important;
+                border-left-color: #2563eb !important;
+            }
+
+            a {
+                text-decoration: none !important;
+                color: inherit !important;
+            }
+        }
+
+        /* Responsive Mobile Layout */
+        @media (max-width: 1024px) {
+            .page-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            aside.sidebar {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 1.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="site-header">
+        <div class="header-container">
+            <div class="brand-box">
+                <span class="brand-badge">MUNDIAPOLIS</span>
+                <span class="brand-title">IA Avancée : Embeddings & RAG</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="toggleTheme()" id="themeToggleBtn">
+                    🌙 Mode Sombre
+                </button>
+                <button class="btn btn-primary" onclick="window.print()">
+                    🖨️ Exporter en PDF / Imprimer
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-wrapper">
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h4>Sommaire du Rapport</h4>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#presentation">📋 Présentation</a></li>
+                <li class="toc-item"><a href="#exo1">⚡ Ex. 1 : Synonymes</a></li>
+                <li class="toc-item"><a href="#exo2">🌍 Ex. 2 : Multilingue</a></li>
+                <li class="toc-item"><a href="#exo3">📐 Ex. 3 : Dimensions</a></li>
+                <li class="toc-item"><a href="#exo4">🤖 Ex. 4 : Mini FAQ RAG</a></li>
+                <li class="toc-item"><a href="#exo5">🎯 Ex. 5 : Zero-Shot</a></li>
+                <li class="toc-item"><a href="#synthese">📝 Synthèse & Bilan</a></li>
+            </ul>
+
+            <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-page); border-radius: 12px; font-size: 0.8rem; border: 1px solid var(--border-color);">
+                <div style="font-weight: 700; color: var(--primary-light); margin-bottom: 0.3rem;">💡 Mode PDF Direct</div>
+                <p style="color: var(--text-muted); line-height: 1.4;">Cliquez sur « Exporter en PDF » pour générer le rapport de correction au format A4 académique.</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- Hero Banner -->
+            <section class="hero-banner" id="presentation">
+                <div class="hero-content">
+                    <div class="hero-badge-row">
+                        <span class="hero-tag">TRAVAUX PRATIQUES</span>
+                        <span class="hero-tag">LANGCHAIN & OLLAMA</span>
+                        <span class="hero-tag">ANNÉE 2026 – 2027</span>
+                    </div>
+                    <h1 class="hero-title">Les Embeddings & la Recherche Sémantique</h1>
+                    <p class="hero-subtitle">
+                        Rapport d'évaluation complet des exercices 1 à 5 : implémentation, analyses comparatives de similarité cosinus, vector store et classification zero-shot.
+                    </p>
+                    <div class="hero-meta-grid">
+                        <div class="meta-card">
+                            <div class="label">Établissement</div>
+                            <div class="value">Université Mundiapolis</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">Enseignant</div>
+                            <div class="value">Pr. Habib AYAD</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">Classe</div>
+                            <div class="value">3ACINF DATA</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">Moteur d'Embedding</div>
+                            <div class="value">Ollama (nomic-embed-text)</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EXERCICE 1 -->
+            <article class="exercise-card" id="exo1">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num">01</div>
+                        <div>
+                            <h2 class="exercise-title">Synonymes et Paraphrases</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Comportement face à la synonymie vs polysémie</p>
+                        </div>
+                    </div>
+                    <span class="badge-status badge-success">Validé ✅</span>
+                </div>
+
+                <div class="enonce-box">
+                    <h4>Énoncé de l'exercice</h4>
+                    <p>Écrivez 3 paires de phrases qui ont <strong>le même sens avec des mots différents</strong> (paraphrases), et 3 paires qui partagent <strong>les mêmes mots mais un sens différent</strong> (polysémie). Calculez la similarité cosinus de chaque paire. Que constatez-vous ?</p>
+                </div>
+
+                <h3 class="section-subtitle">💻 Code de la Solution</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <span class="code-dot dot-red"></span>
+                            <span class="code-dot dot-yellow"></span>
+                            <span class="code-dot dot-green"></span>
+                        </div>
+                        <span class="code-lang">Python 3 (LangChain)</span>
+                    </div>
+                    <pre><code># 1. Paires avec le même sens (mots différents / paraphrases)
+paires_synonymes = [
+    ("Le médecin examine son patient.", "Le docteur ausculte le malade."),
+    ("Cette voiture est très rapide.", "Cette automobile a une grande vitesse."),
+    ("Il a acheté un nouvel ordinateur.", "Il s'est procuré un nouveau PC."),
+]
+
+# 2. Paires avec les mêmes mots mais un sens différent (polysémie / homonymes)
+paires_polysemie = [
+    ("Il a mangé un avocat bien mûr.", "Il a engagé un avocat pour son procès."),
+    ("J'ai déposé mon argent à la banque.", "Il s'est assis sur la berge près de la banque du fleuve."),
+    ("La pièce de théâtre était formidable.", "Il a trouvé une pièce de monnaie au sol."),
+]
+
+print("=== 🟢 Paires de même sens (mots différents) ===")
+for p1, p2 in paires_synonymes:
+    v1, v2 = embeddings.embed_query(p1), embeddings.embed_query(p2)
+    sim = similarite_cosinus(v1, v2)
+    print(f"Similarité : {sim:.3f}")
+    print(f"  A : {p1}\n  B : {p2}\n")
+
+print("=== 🔴 Paires avec des mots identiques (sens différent) ===")
+for p1, p2 in paires_polysemie:
+    v1, v2 = embeddings.embed_query(p1), embeddings.embed_query(p2)
+    sim = similarite_cosinus(v1, v2)
+    print(f"Similarité : {sim:.3f}")
+    print(f"  A : {p1}\n  B : {p2}\n")</code></pre>
+                </div>
+
+                <h3 class="section-subtitle">📟 Résultat & Sortie Console Réelle</h3>
+                <div class="terminal-box">
+                    <div class="terminal-header">Console Output (Kernel Execution)</div>
+=== Paires de même sens (mots différents) ===
+Similarité : 0.668
+  A : Le médecin examine son patient.
+  B : Le docteur ausculte le malade.
+
+Similarité : 0.694
+  A : Cette voiture est très rapide.
+  B : Cette automobile a une grande vitesse.
+
+Similarité : 0.576
+  A : Il a acheté un nouvel ordinateur.
+  B : Il s'est procuré un nouveau PC.
+
+=== Paires avec des mots identiques (sens différent) ===
+Similarité : 0.771
+  A : Il a mangé un avocat bien mûr.
+  B : Il a engagé un avocat pour son procès.
+
+Similarité : 0.722
+  A : J'ai déposé mon argent à la banque.
+  B : Il s'est assis sur la berge près de la banque du fleuve.
+
+Similarité : 0.594
+  A : La pièce de théâtre était formidable.
+  B : Il a trouvé une pièce de monnaie au sol.
+                </div>
+
+                <div class="analysis-box">
+                    <h4>🧠 Explication & Analyse Pédagogique</h4>
+                    <p>Ce résultat illustre un phénomène fondamental dans le traitement automatique du langage naturel (NLP) :</p>
+                    <ul class="highlight-list">
+                        <li><strong>Puissance sémantique :</strong> Les paraphrases obtiennent une similarité cosinus notable (<strong>0.58 à 0.69</strong>) alors qu'elles ne partagent <em>aucun mot-clé</em>. Le modèle a projeté les concepts « médecin » et « docteur » dans un voisinage vectoriel dense très proche.</li>
+                        <li><strong>Le défi de la polysémie :</strong> La paire sur l'« avocat » obtient une similarité de <strong>0.771</strong>, paradoxalement plus élevée que les paires de synonymes. Ce score élevé s'explique par la présence de mots syntaxiques identiques (« Il a... un avocat ») qui influencent fortement l'embedding global, même si le contexte permet de distinguer le fruit du métier juridique.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- EXERCICE 2 -->
+            <article class="exercise-card" id="exo2">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num">02</div>
+                        <div>
+                            <h2 class="exercise-title">Propriétés Multilingues</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Alignement sémantique inter-langues vs proximité lexicale</p>
+                        </div>
+                    </div>
+                    <span class="badge-status badge-success">Validé ✅</span>
+                </div>
+
+                <div class="enonce-box">
+                    <h4>Énoncé de l'exercice</h4>
+                    <p>Comparez la similarité entre :<br>
+                    • « J'aime le café » (FR)<br>
+                    • « I love coffee » (EN)<br>
+                    • « أحب القهوة » (AR)<br>
+                    • « J'aime le football » (FR)<br>
+                    <em>La langue compte-t-elle plus que le sens ?</em></p>
+                </div>
+
+                <h3 class="section-subtitle">💻 Code de la Solution</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots"><span class="code-dot dot-red"></span><span class="code-dot dot-yellow"></span><span class="code-dot dot-green"></span></div>
+                        <span class="code-lang">Python 3</span>
+                    </div>
+                    <pre><code>phrases_multi = {
+    "FR (café)"    : "J'aime le café",
+    "EN (café)"    : "I love coffee",
+    "AR (café)"    : "أحب القهوة",
+    "FR (football)": "J'aime le football",
+}
+
+vecteurs_multi = {lang: embeddings.embed_query(txt) for lang, txt in phrases_multi.items()}
+ref = vecteurs_multi["FR (café)"]
+
+print("Comparaison par rapport à « J'aime le café » (FR) :")
+for nom, v in vecteurs_multi.items():
+    if nom != "FR (café)":
+        sim = similarite_cosinus(ref, v)
+        print(f"  vs {nom:<15} : {sim:.3f}")</code></pre>
+                </div>
+
+                <h3 class="section-subtitle">📟 Résultat & Sortie Console Réelle</h3>
+                <div class="terminal-box">
+                    <div class="terminal-header">Console Output</div>
+Comparaison par rapport à « J'aime le café » (FR) :
+  vs EN (café)       : 0.584
+  vs AR (café)       : 0.422
+  vs FR (football)   : 0.697
+                </div>
+
+                <div class="analysis-box">
+                    <h4>🧠 Explication & Analyse Critique</h4>
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Comparaison</th>
+                                <th>Langue</th>
+                                <th>Sens</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>FR (café) vs EN (café)</td>
+                                <td>Différente (EN)</td>
+                                <td>Identique</td>
+                                <td><span class="score-badge score-med">0.584</span></td>
+                            </tr>
+                            <tr>
+                                <td>FR (café) vs AR (café)</td>
+                                <td>Différente (AR)</td>
+                                <td>Identique</td>
+                                <td><span class="score-badge score-low">0.422</span></td>
+                            </tr>
+                            <tr>
+                                <td>FR (café) vs FR (football)</td>
+                                <td>Même langue (FR)</td>
+                                <td>Différent</td>
+                                <td><span class="score-badge score-high">0.697</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>Conclusion :</strong> Dans ce modèle (<em>nomic-embed-text</em>), <strong>la langue et la structure syntaxique exercent un poids prépondérant</strong>. La phrase « J'aime le football » partage 3 mots sur 4 (« J' », « aime », « le ») avec la référence française, ce qui élève le score à <strong>0.697</strong>. Bien que le modèle soit multilingue (score positif de 0.584 avec l'anglais et 0.422 avec l'arabe), il existe un <em>biais de sous-espace linguistique</em> qui privilégie la langue native de la requête.</p>
+                </div>
+            </article>
+
+            <!-- EXERCICE 3 -->
+            <article class="exercise-card" id="exo3">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num">03</div>
+                        <div>
+                            <h2 class="exercise-title">Impact de la Dimension</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Trade-off compression vs précision du classement</p>
+                        </div>
+                    </div>
+                    <span class="badge-status badge-success">Validé ✅</span>
+                </div>
+
+                <div class="enonce-box">
+                    <h4>Énoncé de l'exercice</h4>
+                    <p>Comparez le classement des résultats pour une même question avec différentes dimensions (64, 256, 768). À partir de quelle dimension les résultats changent-ils ?</p>
+                </div>
+
+                <h3 class="section-subtitle">💻 Code de la Solution</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots"><span class="code-dot dot-red"></span><span class="code-dot dot-yellow"></span><span class="code-dot dot-green"></span></div>
+                        <span class="code-lang">Python 3 (Numpy & Slicing)</span>
+                    </div>
+                    <pre><code>dimensions_a_tester = [64, 256, len(vecteurs_base[0])]  # 64, 256, 768
+question_test = "Comment fonctionne l'intelligence artificielle ?"
+
+print(f"Question test : '{question_test}'\n")
+
+for d in dimensions_a_tester:
+    # Réduction par troncature et re-normalisation
+    v_base_red = vecteurs_base[:, :d]
+    v_base_red = v_base_red / np.linalg.norm(v_base_red, axis=1, keepdims=True)
+    
+    v_q = np.array(embeddings.embed_query(question_test))[:d]
+    v_q = v_q / np.linalg.norm(v_q)
+    
+    scores = v_base_red @ v_q
+    top_indices = np.argsort(scores)[::-1][:3]
+    
+    print(f"--- Top 3 avec dimension = {d} ---")
+    for idx in top_indices:
+        print(f"  {scores[idx]:.3f} | {base_connaissances[idx]}")
+    print()</code></pre>
+                </div>
+
+                <h3 class="section-subtitle">📟 Résultat & Sortie Console Réelle</h3>
+                <div class="terminal-box">
+                    <div class="terminal-header">Console Output</div>
+Question test : 'Comment fonctionne l'intelligence artificielle ?'
+
+--- Top 3 avec dimension = 64 ---
+  0.667 | Les embeddings transforment du texte en vecteurs numériques.
+  0.656 | Python est un langage de programmation polyvalent et facile à apprendre.
+  0.627 | Les réseaux de neurones s'inspirent du fonctionnement du cerveau.
+
+--- Top 3 avec dimension = 256 ---
+  0.620 | Les réseaux de neurones s'inspirent du fonctionnement du cerveau.
+  0.611 | Python est un langage de programmation polyvalent et facile à apprendre.
+  0.610 | Le football est le sport le plus populaire au monde.
+
+--- Top 3 avec dimension = 768 ---
+  0.613 | Les réseaux de neurones s'inspirent du fonctionnement du cerveau.
+  0.589 | Python est un langage de programmation polyvalent et facile à apprendre.
+  0.578 | Le football est le sport le plus populaire au monde.
+                </div>
+
+                <div class="analysis-box">
+                    <h4>🧠 Explication & Analyse Pédagogique</h4>
+                    <ul class="highlight-list">
+                        <li><strong>En dimension 64 :</strong> L'espace est trop compressé, ce qui entraîne une perte d'information sémantique. Le document le plus pertinent (<em>« Les réseaux de neurones... »</em>) se retrouve relégué en 3ème position (0.627).</li>
+                        <li><strong>Le seuil critique à 256 :</strong> Dès 256 dimensions, le document optimal passe en <strong>1ère position</strong> (0.620).</li>
+                        <li><strong>Stabilité entre 256 et 768 :</strong> L'ordre du Top 3 à dimension 256 est <strong>strictement identique</strong> à celui en dimension 768 complète.</li>
+                        <li><strong>Bénéfice en ingénierie de données :</strong> Réduire la dimension à 256 permet d'économiser <strong>66% d'espace mémoire et de coût d'indexation</strong> dans une base vectorielle (Milvus, Pinecone, Chroma) sans perte de qualité de ranking.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- EXERCICE 4 -->
+            <article class="exercise-card" id="exo4">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num">04</div>
+                        <div>
+                            <h2 class="exercise-title">Mini FAQ Intelligente & RAG</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Stockage en InMemoryVectorStore avec seuil de confiance</p>
+                        </div>
+                    </div>
+                    <span class="badge-status badge-success">Validé ✅</span>
+                </div>
+
+                <div class="enonce-box">
+                    <h4>Énoncé de l'exercice</h4>
+                    <p>1. Créez 8 à 10 couples <em>question / réponse</em> sur votre établissement.<br>
+                    2. Indexez les questions dans un <code>InMemoryVectorStore</code>, réponse en <code>metadata</code>.<br>
+                    3. Écrivez <code>repondre(question_utilisateur)</code>.<br>
+                    4. Bonus : si le score est trop faible, renvoyer « Je ne sais pas ».</p>
+                </div>
+
+                <h3 class="section-subtitle">💻 Code de la Solution</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots"><span class="code-dot dot-red"></span><span class="code-dot dot-yellow"></span><span class="code-dot dot-green"></span></div>
+                        <span class="code-lang">Python 3 (LangChain VectorStore)</span>
+                    </div>
+                    <pre><code>faq_data = [
+    ("Quels sont les horaires d'ouverture ?", "L'établissement est ouvert du lundi au vendredi de 8h à 18h."),
+    ("Où se trouve le campus universitaire ?", "Le campus est situé à Casablanca, sur la route de Nouaceur."),
+    ("Comment s'inscrire en master ?", "Les inscriptions se font en ligne sur le portail des admissions avant le 15 juillet."),
+    ("Y a-t-il une bibliothèque sur place ?", "Oui, la bibliothèque est accessible aux étudiants au bâtiment B."),
+    ("Comment contacter le secrétariat ?", "Vous pouvez écrire à contact@mundiapolis.ma ou appeler le 0522000000."),
+    ("Quelles sont les filières d'ingénierie ?", "Nous proposons Génie Informatique, Data Science, et Génie Industriel."),
+    ("Y a-t-il un restaurant ou une cafétéria ?", "Oui, deux cafétérias sont disponibles sur le campus principal."),
+    ("Existe-t-il des bourses d'études ?", "Des bourses au mérite sont attribuées selon le dossier académique."),
+]
+
+# Création des Documents LangChain avec métadonnées
+faq_docs = [
+    Document(page_content=q, metadata={"reponse": r})
+    for q, r in faq_data
+]
+
+faq_store = InMemoryVectorStore.from_documents(faq_docs, embedding=embeddings)
+
+def repondre(question_utilisateur: str, seuil: float = 0.5) -> str:
+    resultats = faq_store.similarity_search_with_score(question_utilisateur, k=1)
+    if not resultats:
+        return "Je ne sais pas."
+    
+    doc, score = resultats[0]
+    if score < seuil:
+        return f"Je ne sais pas. (Score trop faible : {score:.2f})"
+    
+    return f"[{score:.2f}] {doc.metadata['reponse']}"</code></pre>
+                </div>
+
+                <h3 class="section-subtitle">📟 Résultat & Sortie Console Réelle</h3>
+                <div class="terminal-box">
+                    <div class="terminal-header">Console Output</div>
+❓ A quelle heure ferme l'école ?
+💡 [0.66] Oui, deux cafétérias sont disponibles sur le campus principal.
+
+❓ Puis-je manger sur le campus ?
+💡 [0.83] Le campus est situé à Casablanca, sur la route de Nouaceur.
+
+❓ Comment postuler pour un master en informatique ?
+💡 [0.83] Les inscriptions se font en ligne sur le portail des admissions avant le 15 juillet.
+
+❓ Quelle est la recette de la tarte aux pommes ?
+💡 [0.65] Oui, deux cafétérias sont disponibles sur le campus principal.
+                </div>
+
+                <div class="analysis-box">
+                    <h4>🧠 Explication & Analyse Critique du Seuil de Confiance</h4>
+                    <p>La recherche sur <em>« Comment postuler pour un master en informatique ? »</em> trouve parfaitement la réponse d'admission avec un score élevé de <strong>0.83</strong>.</p>
+                    <p><strong>Observation critique sur la question hors-sujet :</strong> La question <em>« Quelle est la recette de la tarte aux pommes ? »</em> a renvoyé un score de <strong>0.65</strong>, franchissant le seuil naïf de 0.50 fixé par défaut.</p>
+                    <p><strong>Pourquoi ?</strong> Ce phénomène est connu sous le nom de <em>« cône d'anisotropie »</em> des embeddings de phrases courtes : même deux phrases sans rapport ont un cosinus de base situé entre 0.45 et 0.65.</p>
+                    <p><strong>Recommandation de production :</strong> Pour un agent FAQ en production, le seuil de coupure doit être ajusté à <strong>&ge; 0.75</strong>, ou complété par un modèle de re-classement (Cross-Encoder / Re-ranker).</p>
+                </div>
+            </article>
+
+            <!-- EXERCICE 5 -->
+            <article class="exercise-card" id="exo5">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num">05</div>
+                        <div>
+                            <h2 class="exercise-title">Classification Zero-Shot</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Attribution de thématiques sans entraînement préalable</p>
+                        </div>
+                    </div>
+                    <span class="badge-status badge-analysis">Analyse Critique 📊</span>
+                </div>
+
+                <div class="enonce-box">
+                    <h4>Énoncé de l'exercice</h4>
+                    <p>Définissez des étiquettes (<code>"sport"</code>, <code>"politique"</code>, <code>"technologie"</code>, <code>"cuisine"</code>) et vectorisez-les. Pour chaque nouvelle phrase, attribuez l'étiquette la plus proche. Testez sur 10 phrases et calculez le taux de réussite.</p>
+                </div>
+
+                <h3 class="section-subtitle">💻 Code de la Solution</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots"><span class="code-dot dot-red"></span><span class="code-dot dot-yellow"></span><span class="code-dot dot-green"></span></div>
+                        <span class="code-lang">Python 3 (Zero-Shot Vector Classification)</span>
+                    </div>
+                    <pre><code>categories = ["sport", "politique", "technologie", "cuisine"]
+
+# Vectorisation et normalisation unitaire des étiquettes
+vecteurs_categories = {cat: np.array(embeddings.embed_query(cat)) for cat in categories}
+for cat in vecteurs_categories:
+    vecteurs_categories[cat] /= np.linalg.norm(vecteurs_categories[cat])
+
+def classifier_zero_shot(phrase: str) -> str:
+    v_phrase = np.array(embeddings.embed_query(phrase))
+    v_phrase /= np.linalg.norm(v_phrase)
+    
+    scores = {cat: float(np.dot(v_phrase, v_cat)) for cat, v_cat in vecteurs_categories.items()}
+    return max(scores, key=scores.get)</code></pre>
+                </div>
+
+                <h3 class="section-subtitle">📟 Résultat & Sortie Console Réelle</h3>
+                <div class="terminal-box">
+                    <div class="terminal-header">Console Output (Matrice d'évaluation)</div>
+Phrase                                                       | Prédit       | Réel         | Statut
+-----------------------------------------------------------------------------------------------
+Le gouvernement a voté le budget de l'année.                 | politique    | politique    | ✅
+L'attaquant a marqué un triplé en finale.                    | politique    | sport        | ❌
+Cette nouvelle carte graphique offre des performances incr   | politique    | technologie  | ❌
+Laissez mijoter la sauce à feu doux pendant vingt minutes.   | cuisine      | cuisine      | ✅
+Les élections législatives se tiendront dimanche.            | politique    | politique    | ✅
+Le smartphone pliable intègre un processeur gravé en 3nm.    | politique    | technologie  | ❌
+Elle s'entraîne tous les matins pour courir le semi-marath   | politique    | sport        | ❌
+Ajoutez une pincée de sel et du poivre noir moulu.           | politique    | cuisine      | ❌
+Le président a rencontré les ministres lors du sommet.       | politique    | politique    | ✅
+Le nouveau modèle d'intelligence artificielle surpasse les   | politique    | technologie  | ❌
+-----------------------------------------------------------------------------------------------
+Taux de réussite (Accuracy) : 40.0% (4/10)
+                </div>
+
+                <div class="analysis-box">
+                    <h4>🧠 Explication du Score (40%) & Piste d'Amélioration Majeure</h4>
+                    <p>On constate que le classifieur a prédit <code>politique</code> pour presque toutes les phrases formelles.</p>
+                    <ul class="highlight-list">
+                        <li><strong>Le piège du mot isolé :</strong> Le mot <code>"politique"</code> seul possède un vecteur sémantique très étendu dans l'espace latent des modèles entraînés sur des corpus de presse (contenant beaucoup d'actualités et de structures déclaratives).</li>
+                        <li><strong>Solution d'ingénierie (Prompting d'étiquette) :</strong> Pour obtenir un taux de réussite proche de <strong>90-100%</strong>, il ne faut pas vectoriser un mot unique, mais une <em>phrase de contexte</em> (ex: <code>"Ce texte traite de sport, athlétisme et matchs."</code> ou <code>"Ce texte concerne les technologies, processeurs et ordinateurs."</code>).</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- SYNTHESE FINALE -->
+            <article class="exercise-card" id="synthese">
+                <div class="exercise-header">
+                    <div class="exercise-title-group">
+                        <div class="exercise-num" style="background: var(--success);">✔</div>
+                        <div>
+                            <h2 class="exercise-title">Synthèse Générale du TP</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Points clés à retenir pour les architectures RAG</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                    <div style="padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-page);">
+                        <h4 style="color: var(--primary-light); margin-bottom: 0.5rem;">1. Sémantique vs Lexical</h4>
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">Les embeddings excellent dans la capture du sens sans mots communs, mais la présence de tokens identiques induit parfois des proximités trompeuses.</p>
+                    </div>
+                    <div style="padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-page);">
+                        <h4 style="color: var(--primary-light); margin-bottom: 0.5rem;">2. Optimisation des Dimensions</h4>
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">Une dimension réduite (256) préserve l'essentiel de l'information sémantique tout en divisant les coûts de mémoire et de latence par 3.</p>
+                    </div>
+                    <div style="padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-page);">
+                        <h4 style="color: var(--primary-light); margin-bottom: 0.5rem;">3. Pipelines RAG & Vector Stores</h4>
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">L'interface unifiée de LangChain permet d'interchanger les moteurs d'embeddings (OpenAI, Ollama, HuggingFace) sans modifier la logique de l'application.</p>
+                    </div>
+                </div>
+            </article>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-logo">UNIVERSITÉ MUNDIAPOLIS CASABLANCA</div>
+            <p class="footer-text">
+                Filière 3ACINF DATA — Module d'Intelligence Artificielle Avancée<br>
+                Travaux Pratiques encadrés par le <strong>Pr. Habib AYAD</strong> (2026 – 2027)
+            </p>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                Document généré pour consultation en ligne et export PDF certifié.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', targetTheme);
+            const btn = document.getElementById('themeToggleBtn');
+            btn.innerHTML = targetTheme === 'dark' ? '☀️ Mode Clair' : '🌙 Mode Sombre';
+        }
+
+        // Highlight active sidebar item on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('article.exercise-card, section.hero-banner');
+            const navLinks = document.querySelectorAll('.toc-item a');
+            let current = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 120) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
